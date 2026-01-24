@@ -3,7 +3,7 @@ Converts a simai chart to import into a Scratch maimai simulator: https://scratc
 
 ## Installation Guide
 - Clone this repo
-- Get dependencies: `pip install re`, `pip install csv`
+- Install dependencies: `pip install re`, `pip install csv`
 
 ## Usage guide
 - Create a new file named `chart.simai` in the same folder and paste the simai score data into it
