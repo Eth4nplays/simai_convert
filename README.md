@@ -1,5 +1,6 @@
 # Simai Convert
 Converts a simai chart to import into a Scratch maimai simulator: https://scratch.mit.edu/projects/1270407926/
+You can use the web version here: https://eth4nplays.github.io/simai_convert/ or follow the instructions below to use the Python version.
 
 ## Installation Guide
 - Clone this repo
