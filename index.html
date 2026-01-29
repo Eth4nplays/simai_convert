@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SIMAI Chart Parser</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    textarea { width: 100%; height: 80px; margin-bottom: 10px; }
+    label { font-weight: bold; display: block; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <h1>SIMAI Chart Parser</h1>
+  <p>Paste your SIMAI chart below:</p>
+  <textarea id="simaiInput" placeholder="Paste your chart here..."></textarea><br>
+  <button onclick="parseChart()">Parse Chart</button>
+
+  <div id="results">
+    <label for="timeBox">Time (seconds):</label>
+    <textarea id="timeBox" readonly></textarea>
+
+    <label for="laneBox">Lane:</label>
+    <textarea id="laneBox" readonly></textarea>
+
+    <label for="typeBox">Type:</label>
+    <textarea id="typeBox" readonly></textarea>
+
+    <label for="durationBox">Duration (seconds):</label>
+    <textarea id="durationBox" readonly></textarea>
+  </div>
+
+  <script>
+    function parseChart() {
+      const rawText = document.getElementById('simaiInput').value.replace(/\s+/g, '');
+      if (!rawText) {
+        alert("Please paste a chart first!");
+        return;
+      }
+      const { times, lanes, types, durations } = parseSimai(rawText);
+
+      document.getElementById('timeBox').value = times.join(',');
+      document.getElementById('laneBox').value = lanes.join(',');
+      document.getElementById('typeBox').value = types.join(',');
+      document.getElementById('durationBox').value = durations.join(',');
+    }
+
+    function parseSimai(raw) {
+      let currentBpm = 120.0;
+      let currentDiv = 4.0;
+      let currentTime = 0.0;
+
+      const times = [], lanes = [], types = [], durations = [];
+      const steps = raw.split(',');
+
+      steps.forEach(stepRaw => {
+        let step = stepRaw;
+        if (!step) {
+          const stepDur = (60 / currentBpm) * (4 / currentDiv);
+          currentTime += stepDur;
+          return;
+        }
+
+        // Update BPM
+        const bpmMatch = step.match(/\((\d+(\.\d+)?)\)/);
+        if (bpmMatch) {
+          currentBpm = parseFloat(bpmMatch[1]);
+          step = step.replace(/\(.*?\)/, '');
+        }
+
+        // Update Division
+        const divMatch = step.match(/\{(\d+)\}/);
+        if (divMatch) {
+          currentDiv = parseFloat(divMatch[1]);
+          step = step.replace(/\{.*?\}/, '');
+        }
+
+        const notes = step.split('/');
+        notes.forEach(noteRaw => {
+          let note = noteRaw;
+          if (!note || note === 'E') return;
+
+          let laneStr = "0";
+          let nType = "TAP";
+          let nDuration = 0;
+
+          const areaMatch = note.match(/([A-E])([1-8])/);
+          if (areaMatch) {
+            laneStr = areaMatch[1] + areaMatch[2];
+            nType = "TOUCH";
+          } else {
+            const laneMatch = note.match(/([1-8])/);
+            laneStr = laneMatch ? laneMatch[1] : "0";
+          }
+
+          const durMatch = note.match(/\[(\d+):(\d+)\]/);
+          if (durMatch) {
+            nDuration = (60 / currentBpm) * (4 / parseFloat(durMatch[1])) * parseFloat(durMatch[2]);
+          }
+
+          if (note.includes('h')) {
+            nType = areaMatch ? "TOUCH_HOLD" : "HOLD";
+          } else if (/[><\-\^vpqszwV]/.test(note)) {
+            nType = "SLIDE";
+          } else if (note.includes('b')) {
+            nType = "BREAK";
+          }
+
+          times.push(currentTime.toFixed(3));
+          lanes.push(laneStr);
+          types.push(nType);
+          durations.push(nDuration.toFixed(3));
+        });
+
+        const stepDur = (60 / currentBpm) * (4 / currentDiv);
+        currentTime += stepDur;
+      });
+
+      return { times, lanes, types, durations };
+    }
+  </script>
+</body>
+</html>
